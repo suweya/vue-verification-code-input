@@ -8,7 +8,7 @@
 
 ## Live demo
 
-- [Demo](https://suweya.github.io/vue-verification-code-input/)
+- [Demo](https://suweya.github.io/vue-verification-code-input/index.html)
 
 ## Install
 
