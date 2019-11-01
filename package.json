@@ -1,0 +1,44 @@
+{
+  "name": "vue-verification-code-input",
+  "version": "1.0.0",
+  "description": "🎉A verification code input",
+  "author": "suweya",
+  "license": "MIT",
+  "repository": "https://github.com/suweya/vue-verification-code-input",
+  "engines": {
+    "node": ">=8",
+    "npm": ">=5"
+  },
+  "main": "dist/index.common.js",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build --target lib --name index ./src/components/CodeInput.vue",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "core-js": "^3.3.2",
+    "vue": "^2.6.10"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^4.0.0",
+    "@vue/cli-plugin-eslint": "^4.0.0",
+    "@vue/cli-service": "^4.0.0",
+    "babel-eslint": "^10.0.3",
+    "eslint": "^5.16.0",
+    "eslint-plugin-vue": "^5.0.0",
+    "vue-template-compiler": "^2.6.10"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "vue",
+    "vue-component",
+    "code",
+    "input",
+    "verify",
+    "verifycode",
+    "PIN",
+    "pin-code"
+  ]
+}
