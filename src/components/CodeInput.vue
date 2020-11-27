@@ -2,11 +2,11 @@
   <div
     v-bind:class="{
       'react-code-input-container': true,
-      [className]: !!className
+      [className]: !!className,
     }"
     v-bind:style="{ width: `${fields * fieldWidth}px` }"
   >
-    <p class="title" v-if="title">{{title}}</p>
+    <p class="title" v-if="title">{{ title }}</p>
     <div class="react-code-input">
       <template v-for="(v, index) in values">
         <input
@@ -15,7 +15,7 @@
           :autoFocus="autoFocus && !loading && index === autoFocusIndex"
           :style="{
             width: `${fieldWidth}px`,
-            height: `${fieldHeight}px`
+            height: `${fieldHeight}px`,
           }"
           :key="`${id}-${index}`"
           :data-id="index"
@@ -24,13 +24,18 @@
           v-on:input="onValueChange"
           v-on:focus="onFocus"
           v-on:keydown="onKeyDown"
+          v-on:keyup="onKeyUp"
           :disabled="disabled"
           :required="required"
-          maxlength="1"
+          @click="onClick"
         />
       </template>
     </div>
-    <div v-if="loading" class="loading" :style="{lineHeight: `${fieldHeight}px`}">
+    <div
+      v-if="loading"
+      class="loading"
+      :style="{ lineHeight: `${fieldHeight}px` }"
+    >
       <div class="blur" />
       <svg
         class="spin"
@@ -56,7 +61,10 @@ const KEY_CODE = {
   left: 37,
   up: 38,
   right: 39,
-  down: 40
+  down: 40,
+  ctrl: 17,
+  cmd: 91,
+  v: 86,
 };
 
 export default {
@@ -64,51 +72,60 @@ export default {
   props: {
     type: {
       type: String,
-      default: "number"
+      default: "number",
     },
     className: String,
     fields: {
       type: Number,
-      default: 6
+      default: 6,
     },
     fieldWidth: {
       type: Number,
-      default: 58
+      default: 58,
     },
     fieldHeight: {
       type: Number,
-      default: 54
+      default: 54,
     },
     autoFocus: {
       type: Boolean,
-      default: true
+      default: true,
     },
     disabled: {
       type: Boolean,
-      default: false
+      default: false,
     },
     required: {
       type: Boolean,
-      default: false
+      default: false,
     },
     title: String,
     change: Function,
     complete: Function,
     loading: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
+    defaultValues: {
+      type: Array,
+      default: () => {
+        return [];
+      },
+    },
+    clear: Boolean,
   },
   data() {
-    const { fields, values } = this;
+    let { fields, defaultValues } = this;
+
     let vals;
     let autoFocusIndex = 0;
-    if (values && values.length) {
+    if (defaultValues && defaultValues.length) {
       vals = [];
       for (let i = 0; i < fields; i++) {
-        vals.push(values[i] || "");
+        vals.push(defaultValues[i] || "");
       }
-      autoFocusIndex = values.length >= fields ? 0 : values.length;
+      autoFocusIndex =
+        defaultValues.length >= fields ? 0 : defaultValues.length;
     } else {
       vals = Array(fields).fill("");
     }
@@ -119,32 +136,79 @@ export default {
     }
 
     this.id = +new Date();
-    return { values: vals, autoFocusIndex };
+
+    return { values: vals, autoFocusIndex, ctrlDown: false, pasteCode: false };
   },
   mounted() {},
   methods: {
     onFocus(e) {
       e.target.select(e);
     },
-    onValueChange(e) {
-      const index = parseInt(e.target.dataset.id);
+    pasteAndSetCode(value) {
+      let characters = value.slice();
+
+      if (this.type == "number") {
+        let numbers = [];
+        for (let i = 0; i < value.length; i++) {
+          if (characters[i].replace(/[^\d]/gi, "") != "") {
+            numbers.push(characters[i]);
+          }
+        }
+
+        characters = numbers;
+      }
+
+      if (characters.filter(character => character != "").length == 0) {
+        return
+      }
+
+      this.emptyValues();
+
+      this.values = this.values.map((value, index) => {
+        value =
+          typeof characters[index] != "undefined" ? characters[index] : "";
+
+        this.changeValue(value, index, value != "");
+
+        return value;
+      });
+    },
+    changeValue(targetValue, index, valid, e = false) {
+      index = parseInt(index);
+      let inputValue = targetValue;
+      let arrayValue = inputValue.slice();
+      targetValue = typeof arrayValue[0] != "undefined" ? arrayValue[0] : "";
+
+      if (e) {
+        e.target.value = targetValue;
+      }
+
+      if (this.pasteCode) {
+        this.pasteCode = false;
+
+        if (index == 0) {
+          this.pasteAndSetCode(inputValue);
+        }
+      }
+
       const { type, fields } = this;
       if (type === "number") {
-        e.target.value = e.target.value.replace(/[^\d]/gi, "");
+        targetValue = targetValue.replace(/[^\d]/gi, "");
+
+        if (e) {
+          e.target.value = targetValue
+        }
       }
       // this.handleKeys[index] = false;
-      if (
-        e.target.value === "" ||
-        (type === "number" && !e.target.validity.valid)
-      ) {
+      if (targetValue === "" || (type === "number" && !valid)) {
         return;
       }
       let next;
-      const value = e.target.value;
+      const value = targetValue;
       let { values } = this;
       values = Object.assign([], values);
-      if (value.length > 1) {
-        let nextIndex = value.length + index - 1;
+      if (value.length > 1 || (value.length > 0 && e)) {
+        let nextIndex = value.length + index - 1 + (e ? 1 : 0);
         if (nextIndex >= fields) {
           nextIndex = fields - 1;
         }
@@ -164,12 +228,31 @@ export default {
       }
 
       if (next) {
-        const element = this.$refs[next][0];
-        element.focus();
-        element.select();
+        this.selectAndFocusInput(next);
       }
 
       this.triggerChange(values);
+    },
+    selectAndFocusInput(index) {
+      const element = this.$refs[index][0];
+      element.focus();
+      element.select();
+    },
+    onValueChange(e) {
+      this.changeValue(
+        e.target.value,
+        e.target.dataset.id,
+        e.target.validity.valid,
+        e
+      );
+    },
+    onClick(e) {
+      this.selectAndFocusInput(this.iRefs[e.target.dataset.id])
+    },
+    onKeyUp(e) {
+      if (e.keyCode == KEY_CODE.ctrl || e.keyCode == KEY_CODE.cmd) {
+        this.ctrlDown = false;
+      }
     },
     onKeyDown(e) {
       const index = parseInt(e.target.dataset.id);
@@ -177,6 +260,11 @@ export default {
       const nextIndex = index + 1;
       const prev = this.iRefs[prevIndex];
       const next = this.iRefs[nextIndex];
+
+      if (e.keyCode == KEY_CODE.ctrl || e.keyCode == KEY_CODE.cmd) {
+        this.ctrlDown = true;
+      }
+
       switch (e.keyCode) {
         case KEY_CODE.backspace: {
           e.preventDefault();
@@ -209,6 +297,9 @@ export default {
         case KEY_CODE.down:
           e.preventDefault();
           break;
+        case KEY_CODE.v:
+          this.pasteCode = true;
+          break;
         default:
           // this.handleKeys[index] = true;
           break;
@@ -221,8 +312,20 @@ export default {
       if (val.length >= fields) {
         this.$emit("complete", val);
       }
-    }
-  }
+    },
+    emptyValues() {
+      this.values = Array(this.fields).fill("");
+    },
+    clearValues() {
+      this.emptyValues();
+      this.triggerChange();
+    },
+  },
+  watch: {
+    clear() {
+      this.clearValues();
+    },
+  },
 };
 </script>
 
