@@ -45,6 +45,43 @@ export default {
 </script>
 ```
 
+### Using component cleaning
+You must create a variable and it must be boolean, additional you must create a method and it method must change the variable value because in the component CodeInput the clear prop has a watch event and it only is uptaded when the value is changed 
+```jsx
+<template>
+  <div id="app">
+    <CodeInput :loading="false" class="input" :clear="clear" :default-values="[8, 5, 6, 5, 4, 3]" />
+  </div>
+</template>
+
+<script>
+import CodeInput from "vue-verification-code-input";
+
+export default {
+  name: "app",
+  data() {
+    return {
+      clear: false,
+    };
+  },
+  components: {
+    CodeInput
+  },
+  methods: {
+    clearValues() {
+      this.clear = !this.clear;
+    }
+  },
+  mounted() {
+    // Clear the component values after 5 seconds
+    setTimeout(() => {
+      this.clearValues()
+    }, 5000)
+  }
+};
+</script>
+```
+
 ## PropTypes
 
 |     Key     |  Type  |              Desc               |
@@ -59,7 +96,8 @@ export default {
 |    title    | string |        code input title         |
 |   loading   |  bool  |        show loading flag        |
 |  className  | string |           class name            |
-|   values    | array  |         default values          |
+|    clear    |  bool  |  clear values with watch event  |
+| defaultValues | array  |         default values        |
 
 ## License
 
