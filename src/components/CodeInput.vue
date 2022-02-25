@@ -12,7 +12,7 @@
         <input
           :type="type === 'number' ? 'tel' : type"
           :pattern="type === 'number' ? '[0-9]' : null"
-          :autoFocus="autoFocus && !loading && index === autoFocusIndex"
+          :autofocus="autoFocus && !loading && index === autoFocusIndex"
           :style="{
             width: `${fieldWidth}px`,
             height: `${fieldHeight}px`
